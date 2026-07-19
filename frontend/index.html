@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能招聘办公助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+  }
+  .header {
+    background: linear-gradient(135deg, #1a237e, #0d47a1);
+    color: white; padding: 20px 40px;
+  }
+  .header h1 { font-size: 24px; font-weight: 600; }
+  .header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; margin-left: 10px;
+  }
+  .badge.online { background: #4caf50; color: white; }
+  .badge.offline { background: #ff9800; color: white; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* 流水线 */
+  .pipeline-bar {
+    display: flex; justify-content: space-between; margin-bottom: 24px;
+    background: white; border-radius: 12px; padding: 16px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .step {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    flex: 1; position: relative;
+  }
+  .step:not(:last-child)::after {
+    content: ''; position: absolute; top: 16px; left: 60%; width: 80%;
+    height: 2px; background: #e0e0e0;
+  }
+  .step.done:not(:last-child)::after { background: #4caf50; }
+  .step-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold;
+    background: #e0e0e0; color: #999; z-index: 1;
+    transition: all 0.3s;
+  }
+  .step.done .step-icon { background: #4caf50; color: white; }
+  .step-label { font-size: 11px; color: #999; text-align: center; }
+  .step.done .step-label { color: #4caf50; font-weight: 600; }
+
+  .card {
+    background: white; border-radius: 12px; padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  textarea {
+    width: 100%; padding: 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 14px; font-family: inherit;
+    min-height: 160px; resize: vertical;
+  }
+  textarea:focus { outline: none; border-color: #2196f3; box-shadow: 0 0 0 3px rgba(33,150,243,0.1); }
+
+  .file-zone {
+    border: 2px dashed #ddd; border-radius: 8px; padding: 20px;
+    text-align: center; margin: 12px 0; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .file-zone:hover, .file-zone.dragover { border-color: #2196f3; background: rgba(33,150,243,0.03); }
+  .file-zone .icon { font-size: 28px; margin-bottom: 4px; }
+  .file-zone .hint { font-size: 13px; color: #999; margin-top: 4px; }
+
+  .file-list { margin: 8px 0; }
+  .file-item {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #e3f2fd; padding: 3px 8px; border-radius: 4px;
+    font-size: 12px; margin: 3px;
+  }
+  .file-item .del { cursor: pointer; color: #f44336; font-weight: bold; margin-left: 4px; }
+
+  .btn {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: #2196f3; color: white; }
+  .btn-primary:hover { background: #1976d2; }
+  .btn-primary:disabled { background: #90caf9; cursor: not-allowed; }
+  .btn-success { background: #4caf50; color: white; }
+  .btn-success:hover { background: #388e3c; }
+  .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
+  .btn-outline:hover { background: #f5f5f5; }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+  .btn-group { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .btn-group .btn { flex: 1; min-width: 120px; }
+
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .job-header {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+  }
+  .job-header .pos { font-size: 20px; font-weight: 700; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag {
+    padding: 3px 10px; border-radius: 12px; font-size: 12px;
+    background: rgba(33,150,243,0.1); color: #1565c0;
+  }
+  .tag.ok { background: rgba(76,175,80,0.1); color: #2e7d32; }
+  .tag.no { background: rgba(244,67,54,0.1); color: #c62828; }
+
+  .cand {
+    border: 1px solid #eee; border-radius: 10px; padding: 16px;
+    margin-bottom: 12px;
+  }
+  .cand .top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .cand .name { font-size: 17px; font-weight: 600; }
+  .cand .meta { font-size: 13px; color: #666; margin-top: 2px; }
+
+  .score {
+    padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 700;
+  }
+  .score.s1 { background: #e8f5e9; color: #2e7d32; }
+  .score.s2 { background: #fff3e0; color: #e65100; }
+  .score.s3 { background: #fce4ec; color: #c62828; }
+
+  .proj-list { margin: 6px 0 0 16px; font-size: 13px; color: #555; }
+  .proj-list li { margin-bottom: 2px; }
+
+  .loading { display: none; text-align: center; padding: 40px; }
+  .loading.show { display: block; }
+  .spinner {
+    width: 36px; height: 36px; border: 4px solid #e0e0e0;
+    border-top: 4px solid #2196f3; border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-area { display: none; }
+  .result-area.show { display: block; }
+
+  .intv-box { margin-top: 8px; }
+  .intv-box details { margin-bottom: 8px; }
+  .intv-box summary { cursor: pointer; font-weight: 600; color: #1565c0; font-size: 14px; }
+  .intv-box ol { margin: 6px 0 6px 20px; font-size: 13px; }
+  .intv-box ol li { margin-bottom: 4px; }
+
+  .report-box {
+    background: #fafafa; border: 1px solid #eee; border-radius: 8px;
+    padding: 16px; white-space: pre-wrap; font-size: 13px;
+    max-height: 400px; overflow-y: auto; margin-top: 12px;
+  }
+
+  .mode-switch {
+    display: flex; align-items: center; gap: 8px; margin-top: 12px;
+    font-size: 13px; color: #666;
+  }
+  .mode-switch input { width: 16px; height: 16px; cursor: pointer; }
+
+  .demo-hint {
+    background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; color: #f57f17; margin: 10px 0;
+  }
+
+  .toast {
+    position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+    border-radius: 8px; color: white; font-size: 14px;
+    z-index: 999; opacity: 0; transform: translateY(-20px);
+    transition: all 0.3s;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.err { background: #f44336; }
+  .toast.ok { background: #4caf50; }
+  .toast.info { background: #2196f3; }
+
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .header { padding: 16px 20px; }
+    .header h1 { font-size: 20px; }
+    .container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 智能招聘办公助手 <span class="badge offline" id="statusBadge">脱机演示</span></h1>
+  <div class="subtitle">OpenClaw 多 Agent 协同 · 岗位分析 · 简历筛选 · 面试辅助 · 报告生成</div>
+</div>
+
+<div class="container">
+
+  <!-- 步骤 -->
+  <div class="pipeline-bar" id="steps">
+    <div class="step" data-s="1"><div class="step-icon">1</div><div class="step-label">📄 岗位分析</div></div>
+    <div class="step" data-s="2"><div class="step-icon">2</div><div class="step-label">📑 简历解析</div></div>
+    <div class="step" data-s="3"><div class="step-icon">3</div><div class="step-label">📊 匹配评分</div></div>
+    <div class="step" data-s="4"><div class="step-icon">4</div><div class="step-label">🎤 面试题</div></div>
+    <div class="step" data-s="5"><div class="step-icon">5</div><div class="step-label">📝 招聘报告</div></div>
+  </div>
+
+  <!-- 输入 -->
+  <div class="main-grid" id="inputArea">
+    <div class="card">
+      <div class="card-title">📋 岗位描述（JD）</div>
+      <textarea id="jdInput" placeholder="在此粘贴招聘岗位描述，例如：&#10;&#10;招聘岗位：AI算法工程师&#10;岗位要求：..."></textarea>
+      <div class="mode-switch">
+        <input type="checkbox" id="useApi" checked>
+        <label for="useApi">使用后端 API（需启动 Flask 服务）</label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📁 简历上传</div>
+      <div class="file-zone" id="fileZone">
+        <div class="icon">📎</div>
+        <div>点击或拖拽上传简历文件</div>
+        <div class="hint">支持 PDF / DOCX / TXT 格式，可多选</div>
+      </div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.txt,.md" style="display:none">
+      <div class="file-list" id="fileList"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="runBtn" onclick="runPipeline()">🚀 运行流水线</button>
+        <button class="btn btn-outline" onclick="demoRun()">⚡ 快速演示</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 加载 -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div id="loadingText">⏳ 处理中...</div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="result-area" id="resultArea">
+    <div class="card">
+      <div class="job-header" id="jobHeader">
+        <div class="pos" id="posDisplay">—</div>
+        <div style="font-size:13px;color:#666;margin-top:4px"><span id="expDisplay"></span></div>
+        <div class="tags" id="tagDisplay"></div>
+      </div>
+    </div>
+    <div class="main-grid">
+      <div>
+        <div class="card">
+          <div class="card-title">👥 候选人排名</div>
+          <div id="candList"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎤 面试题</div>
+          <div class="intv-box" id="intvBox"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title" style="display:flex;justify-content:space-between">
+            <span>📝 招聘报告</span>
+            <button class="btn btn-sm btn-success" onclick="downloadReport()">⬇ 下载</button>
+          </div>
+          <div class="report-box" id="reportBox">完成流水线后自动生成</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== 内置样本数据（脱机可用）==========
+const DEMO = {
+  job: { position: "AI算法工程师", experience: "1-3年", skills: ["Python","PyTorch","机器学习","深度学习","大模型"] },
+  candidates: [
+    { name: "张明远", phone: "138****8000", school: "上海交通大学", major: "计算机科学与技术", degree: "硕士",
+      skills: ["Python","PyTorch","TensorFlow","Docker","K8s","机器学习","深度学习","NLP","RAG","大模型"],
+      projects: ["智能客服RAG系统 - 基于LangChain构建企业级RAG问答系统","图像分类模型优化 - ResNet50部署到K8s","推荐算法平台 - 混合推荐系统"],
+      score: 100, recommend: "强烈推荐面试", matched: ["Python","PyTorch","机器学习","深度学习","大模型"], missing: [] },
+    { name: "王小明", phone: "139****5678", school: "浙江大学", major: "软件工程", degree: "本科",
+      skills: ["Python","PyTorch","Flask","Docker","机器学习","深度学习","RAG"],
+      projects: ["NLP情感分析 - 基于BERT的情感分类","Web API - Flask RESTful服务"],
+      score: 84, recommend: "强烈推荐面试", matched: ["Python","PyTorch","机器学习","深度学习"], missing: ["大模型"] },
+    { name: "李小明", phone: "136****9999", school: "武汉大学", major: "市场营销", degree: "本科",
+      skills: ["Excel","SPSS","Power BI"],
+      projects: ["市场调研数据分析","品牌推广方案"],
+      score: 22, recommend: "暂不推荐", matched: [], missing: ["Python","PyTorch","机器学习","深度学习","大模型"] }
+  ],
+  interviews: {
+    "张明远": { technical: ["Python项目经验和技术深度","PyTorch技术难点","大规模模型优化","Transformer注意力机制","RAG检索生成协同","模型量化蒸馏路线"],
+      behavioral: ["RAG系统角色贡献","K8s部署协作","技术分歧处理","进度质量平衡"] },
+    "王小明": { technical: ["Python项目经验","PyTorch技术难点","BERT结构与微调","模型生产部署","大模型了解程度"],
+      behavioral: ["NLP项目中角色","数据质量与性能平衡","推动技术改进经历"] }
+  },
+  report: `# 招聘分析报告\n\n**招聘项目**: AI算法工程师招聘\n\n## 数据概览\n| 指标 | 数值 |\n|------|------|\n| 候选人总数 | 3 |\n| 推荐人数 | 2 |\n| 推荐率 | 66.7% |\n\n## 匹配度分布\n- 强烈推荐面试：2 人\n- 暂不推荐：1 人\n\n## 候选人详情\n\n### 1. 张明远\n- 匹配度：100.0%\n- 推荐等级：强烈推荐面试\n- 匹配技能：Python, PyTorch, 机器学习, 深度学习, 大模型\n- 缺失技能：无\n\n### 2. 王小明\n- 匹配度：84.0%\n- 推荐等级：强烈推荐面试\n- 匹配技能：Python, PyTorch, 机器学习, 深度学习\n- 缺失技能：大模型\n\n### 3. 李小明\n- 匹配度：22.0%\n- 推荐等级：暂不推荐\n- 匹配技能：无\n- 缺失技能：Python, PyTorch, 机器学习, 深度学习, 大模型`
+};
+
+// ========== 状态 ==========
+let selectedFiles = [];
+let lastReport = '';
+const API_BASE = 'http://127.0.0.1:5000';
+
+// ========== 文件处理 ==========
+const zone = document.getElementById('fileZone');
+const input = document.getElementById('fileInput');
+
+zone.addEventListener('click', () => input.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+input.addEventListener('change', () => { addFiles(input.files); input.value = ''; });
+
+function addFiles(files) {
+  for (const f of files) {
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+      selectedFiles.push(f);
+    }
+  }
+  renderFiles();
+}
+
+function removeFile(name) {
+  selectedFiles = selectedFiles.filter(f => f.name !== name);
+  renderFiles();
+}
+
+function renderFiles() {
+  const el = document.getElementById('fileList');
+  if (!selectedFiles.length) { el.innerHTML = ''; return; }
+  el.innerHTML = selectedFiles.map(f =>
+    `<span class="file-item">📄 ${f.name} <span class="del" onclick="removeFile('${f.name}')">×</span></span>`
+  ).join('');
+}
+
+// ========== 连接检查 ==========
+async function checkApi() {
+  const badge = document.getElementById('statusBadge');
+  const cb = document.getElementById('useApi');
+  try {
+    const res = await fetch(`${API_BASE}/api/ping`);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      badge.textContent = '在线 · 已连接后端';
+      badge.className = 'badge online';
+      cb.disabled = false;
+      return true;
+    }
+  } catch {}
+  badge.textContent = '脱机演示（后端未启动）';
+  badge.className = 'badge offline';
+  cb.checked = false;
+  cb.disabled = true;
+  return false;
+}
+
+// ========== 步骤控制 ==========
+function setStep(n) {
+  document.querySelectorAll('.step').forEach(s => {
+    s.classList.toggle('done', parseInt(s.dataset.s) <= n);
+  });
+}
+
+// ========== Toast ==========
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ========== 使用 API 运行 ==========
+async function runPipeline() {
+  const jd = document.getElementById('jdInput').value.trim();
+  const useApi = document.getElementById('useApi').checked;
+
+  if (!useApi) {
+    toast('未连接后端，请使用「快速演示」模式', 'err');
+    return;
+  }
+
+  if (!jd && selectedFiles.length === 0) {
+    toast('请填写 JD 或上传简历', 'err');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('jd_text', jd || '招聘AI算法工程师');
+  selectedFiles.forEach(f => fd.append('resumes', f));
+
+  if (selectedFiles.length === 0) {
+    // 没有上传文件时用 API 的 quick_test
+    await runApiQuick();
+    return;
+  }
+
+  await runApiPipeline(fd);
+}
+
+async function runApiPipeline(fd) {
+  toggleUI(false);
+  try {
+    for (let i = 1; i <= 5; i++) {
+      setStep(i);
+      document.getElementById('loadingText').textContent =
+        `⏳ Step ${i}/5: ${['岗位分析','简历解析','匹配评分','面试题生成','报告生成'][i-1]}...`;
+      await sleep(400);
+    }
+
+    const res = await fetch(`${API_BASE}/api/pipeline`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.error) { throw new Error(data.error); }
+    renderFromApi(data);
+    toast('✅ 流水线完成！');
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+    toggleUI(true);
+  }
+}
+
+async function runApiQuick() {
+  toggleUI(false);
+  try {
+    for (let i = 1; i <= 5; i++) {
+      setStep(i);
+      document.getElementById('loadingText').textContent =
+        `⏳ Step ${i}/5: ${['岗位分析','简历解析','匹配评分','面试题生成','报告生成'][i-1]}...`;
+      await sleep(300);
+    }
+    const res = await fetch(`${API_BASE}/api/quick_test`);
+    const data = await res.json();
+    renderFromApi(data);
+    toast('✅ 快速测试完成！');
+  } catch (e) {
+    toast('❌ API 请求失败，请确认后端已启动', 'err');
+    toggleUI(true);
+  }
+}
+
+function renderFromApi(data) {
+  const job = data.job || {};
+  document.getElementById('posDisplay').textContent = '🎯 ' + (job.position || '未识别');
+  document.getElementById('expDisplay').textContent = '经验要求: ' + (job.experience || '未明确');
+  document.getElementById('tagDisplay').innerHTML = (job.skills || []).map(s =>
+    `<span class="tag">${s}</span>`
+  ).join('');
+
+  const cands = data.candidates || [];
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('candList').innerHTML = cands.map((c, i) => {
+    const cls = c.score >= 80 ? 's1' : c.score >= 60 ? 's2' : 's3';
+    return `
+      <div class="cand">
+        <div class="top">
+          <div>
+            <div class="name">${medals[i]||''} ${c.name}</div>
+            <div class="meta">${c.education?.school||'—'} · ${c.education?.major||'—'} · ${c.education?.degree||'—'}</div>
+          </div>
+          <div>
+            <div class="score ${cls}">${c.score}分</div>
+            <div style="font-size:11px;color:#666;text-align:center;margin-top:2px">${c.recommend}</div>
+          </div>
+        </div>
+        <div class="tags" style="margin-top:8px">
+          ${(c.matched_skills||[]).map(s => `<span class="tag ok">✅ ${s}</span>`).join('')}
+          ${(c.missing_skills||[]).map(s => `<span class="tag no">❌ ${s}</span>`).join('')}
+        </div>
+        <div style="margin-top:6px;font-size:13px;color:#555">
+          <strong>项目经验：</strong>
+          <ul class="proj-list">${(c.projects||[]).slice(0,3).map(p => `<li>${p}</li>`).join('')}</ul>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 面试题
+  const ib = document.getElementById('intvBox');
+  const iv = data.interviews || {};
+  const names = Object.keys(iv);
+  if (!names.length) {
+    ib.innerHTML = '<div style="color:#999">无推荐候选人</div>';
+  } else {
+    ib.innerHTML = names.map(name => {
+      const q = iv[name];
+      const tech = q.technical_questions || q.technical || [];
+      const beh = q.behavioral_questions || q.behavioral || [];
+      return `
+        <details>
+          <summary>🎯 ${name}（${tech.length + beh.length} 道）</summary>
+          <div style="margin-top:8px">
+            <strong>🔧 技术面试题（${tech.length}道）</strong>
+            <ol>${tech.map(t => `<li>${typeof t === 'string' ? t : t.text || ''}</li>`).join('')}</ol>
+            <strong style="display:block;margin-top:8px">💬 行为面试题（${beh.length}道）</strong>
+            <ol>${beh.map(b => `<li>${typeof b === 'string' ? b : b.text || ''}</li>`).join('')}</ol>
+          </div>
+        </details>
+      `;
+    }).join('');
+  }
+
+  // 报告
+  if (data.report_content) {
+    lastReport = data.report_content;
+    document.getElementById('reportBox').textContent = data.report_content;
+  } else {
+    document.getElementById('reportBox').textContent = DEMO.report;
+    lastReport = DEMO.report;
+  }
+
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('resultArea').classList.add('show');
+  setStep(5);
+}
+
+// ========== 脱机演示 ==========
+async function demoRun() {
+  toggleUI(false);
+  for (let i = 1; i <= 5; i++) {
+    setStep(i);
+    document.getElementById('loadingText').textContent =
+      `⏳ Step ${i}/5: ${['岗位分析','简历解析','匹配评分','面试题生成','报告生成'][i-1]}...`;
+    await sleep(400);
+  }
+  await sleep(300);
+
+  const d = DEMO;
+  document.getElementById('posDisplay').textContent = '🎯 ' + d.job.position;
+  document.getElementById('expDisplay').textContent = '经验要求: ' + d.job.experience;
+  document.getElementById('tagDisplay').innerHTML = d.job.skills.map(s => `<span class="tag">${s}</span>`).join('');
+
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('candList').innerHTML = d.candidates.map((c, i) => {
+    const cls = c.score >= 80 ? 's1' : c.score >= 60 ? 's2' : 's3';
+    return `
+      <div class="cand">
+        <div class="top">
+          <div>
+            <div class="name">${medals[i]} ${c.name}</div>
+            <div class="meta">${c.school} · ${c.major} · ${c.degree}</div>
+          </div>
+          <div>
+            <div class="score ${cls}">${c.score}分</div>
+            <div style="font-size:11px;color:#666;text-align:center;margin-top:2px">${c.recommend}</div>
+          </div>
+        </div>
+        <div class="tags" style="margin-top:8px">
+          ${c.matched.map(s => `<span class="tag ok">✅ ${s}</span>`).join('')}
+          ${c.missing.map(s => `<span class="tag no">❌ ${s}</span>`).join('')}
+        </div>
+        <div style="margin-top:6px;font-size:13px;color:#555">
+          <strong>项目经验：</strong>
+          <ul class="proj-list">${c.projects.map(p => `<li>${p}</li>`).join('')}</ul>
+        </div>
+      </div>`;
+  }).join('');
+
+  const ib = document.getElementById('intvBox');
+  const names = Object.keys(d.interviews);
+  ib.innerHTML = names.map(name => {
+    const q = d.interviews[name];
+    return `
+      <details>
+        <summary>🎯 ${name}（${q.technical.length + q.behavioral.length} 道）</summary>
+        <div style="margin-top:8px">
+          <strong>🔧 技术面试题（${q.technical.length}道）</strong>
+          <ol>${q.technical.map(t => `<li>${t}</li>`).join('')}</ol>
+          <strong style="display:block;margin-top:8px">💬 行为面试题（${q.behavioral.length}道）</strong>
+          <ol>${q.behavioral.map(b => `<li>${b}</li>`).join('')}</ol>
+        </div>
+      </details>`;
+  }).join('');
+
+  lastReport = d.report;
+  document.getElementById('reportBox').textContent = d.report;
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('resultArea').classList.add('show');
+  setStep(5);
+}
+
+// ========== 工具函数 ==========
+function toggleUI(show) {
+  document.getElementById('inputArea').style.display = show ? 'grid' : 'none';
+  document.getElementById('resultArea').classList.toggle('show', !show);
+  document.getElementById('loading').classList.toggle('show', !show);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function downloadReport() {
+  if (!lastReport) { toast('暂无报告可下载', 'err'); return; }
+  const blob = new Blob([lastReport], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `招聘报告_${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ========== 初始化 ==========
+checkApi();
+</script>
+</body>
+</html>
