@@ -1,0 +1,8 @@
+{
+  "model": {
+    "primary": "deepseek/deepseek-v4-flash"
+  },
+  "workspace": "/home/a1593/.openclaw/workspace",
+  "agentDir": "/home/a1593/.openclaw/agents/interview_agent/agent",
+  "skills": ["interview_generator"]
+}
