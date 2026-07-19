@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 环境
+.env
+venv/
+.venv/
+
+# 上传与日志
+frontend/uploads/
+*.log
+
+# 临时报告（运行生成，不入库）
+data/recruitment_report_*.md
+data/interview_questions_*.md
+
+# 系统
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
