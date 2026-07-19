@@ -1,0 +1,31 @@
+{
+ "system_name":"OpenClaw-Recruitment-Agent",
+
+ "agents":[
+
+  {
+   "name":"job_agent",
+   "skill":"jd_parser"
+  },
+
+
+  {
+   "name":"resume_agent",
+   "skill":"resume_parser"
+  },
+
+
+  {
+   "name":"interview_agent",
+   "skill":"interview_generator"
+  },
+
+
+  {
+   "name":"report_agent",
+   "skill":"report_generator"
+  }
+
+ ]
+
+}
