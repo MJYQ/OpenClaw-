@@ -1,0 +1,8 @@
+{
+  "model": {
+    "primary": "deepseek/deepseek-v4-flash"
+  },
+  "workspace": "/home/a1593/.openclaw/workspace",
+  "agentDir": "/home/a1593/.openclaw/agents/resume_agent/agent",
+  "skills": ["resume_parser", "match_score"]
+}
